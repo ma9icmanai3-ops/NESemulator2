@@ -157,10 +157,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    const code = window.prompt(`Enter connection code for Player ${playerId}:`);
-    if (code) {
-        socket?.emit('join-by-code', { code, playerId });
-    }
+    window.open(`${window.location.origin}/controller/${sessionId}/${playerId}`, '_blank');
   };
 
   useEffect(() => {
