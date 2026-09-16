@@ -188,7 +188,6 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
     const exitHandler = () => {
         setRomData(null);
         setIsFullScreen(false);
-        document.exitFullscreen?.().catch(console.error);
     };
 
     socket.on('game-input', inputHandler);
@@ -202,21 +201,8 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   }, [socket, romData, connectionCode, sessionId]);
 
   const triggerFullScreen = () => {
-    const canvas = emulatorRef.current?.getCanvas();
-    if (canvas && !isFullScreen) {
-      canvas.requestFullscreen().then(() => {
-        setIsFullScreen(true);
-      }).catch(console.error);
-    }
+    setIsFullScreen(!isFullScreen);
   };
-
-  if (isFullScreen) {
-      return (
-          <div className="w-screen h-screen bg-black flex items-center justify-center">
-              <Emulator ref={emulatorRef} romData={romData} onStart={triggerFullScreen} />
-          </div>
-      );
-  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden flex flex-col items-center justify-start pt-10 sm:pt-32 gap-6 sm:gap-20" style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}>
@@ -228,11 +214,11 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
       {/* Emulator container */}
       <div 
-        className={`cursor-pointer transition-opacity duration-300 ${romData ? 'opacity-100' : 'opacity-0'}`}
-        style={{ 
+        className={`cursor-pointer transition-all duration-300 ${romData ? 'opacity-100' : 'opacity-0'} ${isFullScreen ? 'fixed inset-0 z-50 w-screen h-screen bg-black' : ''}`}
+        style={!isFullScreen ? { 
             width: '32vw',
             height: '35vh' 
-        }}
+        } : {}}
         onClick={triggerFullScreen}
       >
         <Emulator ref={emulatorRef} romData={romData} onStart={triggerFullScreen} />
@@ -240,7 +226,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
       {/* UI Overlay */}
       <div 
-        className="bg-black/80 p-2 sm:p-4 rounded-xl border border-amber-600 backdrop-blur-md shadow-2xl flex flex-col items-center gap-2 sm:gap-3"
+        className={`bg-black/80 p-2 sm:p-4 rounded-xl border border-amber-600 backdrop-blur-md shadow-2xl flex flex-col items-center gap-2 sm:gap-3 ${isFullScreen ? 'hidden' : 'flex'}`}
         style={{
             width: '340px',
         }}
