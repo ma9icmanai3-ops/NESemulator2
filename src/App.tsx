@@ -83,7 +83,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
           setError("Connection error: Socket disconnected");
           return;
       }
-      const pId = 1; // Default to P1
+      const pId = parseInt(urlPlayerId || '1'); // Default to P1 if not in URL
       console.log("Emitting join-by-code", { code, playerId: pId });
       socket.emit('join-by-code', { code, playerId: pId });
   };
@@ -136,7 +136,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
 
   return (
     <div className="w-screen h-screen bg-stone-900 flex flex-col items-center justify-center">
-      <h2 className="text-white mb-4">Controller P1</h2>
+      <h2 className="text-white mb-4">Controller P{urlPlayerId || '1'}</h2>
       {isConnected && <div className="text-green-500 mb-2 font-bold">CONNECTED</div>}
       <ControllerOverlay 
         onButtonDown={(btn) => sendInput(btn, 'down')}
