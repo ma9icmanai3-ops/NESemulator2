@@ -25,16 +25,9 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
     if (!socket) return;
     
     const joinSession = () => {
-        console.log("ControllerView: joinSession called, params:", urlSessionId, urlPlayerId);
-        // If we have a sessionId from the URL, try to join immediately
-        if (urlSessionId && urlPlayerId) {
-            console.log("ControllerView: Joining from URL params", urlSessionId, urlPlayerId);
-            setSessionId(urlSessionId);
-            setPlayerId(urlPlayerId);
-            socket.emit('join-session', { sessionId: urlSessionId, playerId: parseInt(urlPlayerId) });
-        } else {
-            console.log("ControllerView: No URL params for session, waiting for code-verified");
-        }
+        console.log("ControllerView: joinSession called");
+        // Do NOT automatically join from URL params. Force manual code entry.
+        console.log("ControllerView: Waiting for manual code entry");
     };
 
     if (socket.connected) {
