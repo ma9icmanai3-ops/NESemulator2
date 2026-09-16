@@ -13,6 +13,7 @@ import { Emulator } from './components/Emulator';
 import { ControllerOverlay } from './components/ControllerOverlay';
 
 const ControllerView = ({ socket }: { socket: Socket | null }) => {
+  console.log("ControllerView rendering. Socket:", !!socket);
   const { sessionId: urlSessionId, playerId: urlPlayerId } = useParams();
   const [code, setCode] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null);
