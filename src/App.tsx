@@ -24,12 +24,15 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
     if (!socket) return;
     
     const joinSession = () => {
+        console.log("ControllerView: joinSession called, params:", urlSessionId, urlPlayerId);
         // If we have a sessionId from the URL, try to join immediately
         if (urlSessionId && urlPlayerId) {
             console.log("ControllerView: Joining from URL params", urlSessionId, urlPlayerId);
             setSessionId(urlSessionId);
             setPlayerId(urlPlayerId);
             socket.emit('join-session', { sessionId: urlSessionId, playerId: parseInt(urlPlayerId) });
+        } else {
+            console.log("ControllerView: No URL params for session, waiting for code-verified");
         }
     };
 
@@ -133,7 +136,10 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    window.location.href = `/controller/${sessionId}/${playerId}`;
+    const code = window.prompt(`Enter connection code for Player ${playerId}:`);
+    if (code) {
+        socket?.emit('join-by-code', { code, playerId });
+    }
   };
 
   useEffect(() => {
