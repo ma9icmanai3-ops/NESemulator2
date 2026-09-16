@@ -13,84 +13,79 @@ import { Emulator } from './components/Emulator';
 import { ControllerOverlay } from './components/ControllerOverlay';
 
 const ControllerView = ({ socket }: { socket: Socket | null }) => {
-  console.log("ControllerView rendering. Socket:", !!socket);
-  const { sessionId: urlSessionId, playerId: urlPlayerId } = useParams();
-  console.log("ControllerView params:", { urlSessionId, urlPlayerId });
+  const { playerId: urlPlayerId } = useParams();
   const [code, setCode] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null);
-  console.log("ControllerView initial sessionId:", sessionId);
-  const [playerId, setPlayerId] = useState<string | null>(urlPlayerId || null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [playerId] = useState<string>(urlPlayerId || '1');
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!socket) return;
-    
-    const joinSession = () => {
-        console.log("ControllerView: joinSession called, params:", urlSessionId, urlPlayerId);
-        // If we have a sessionId from the URL, try to join immediately
-        if (urlSessionId && urlPlayerId) {
-            console.log("ControllerView: Joining from URL params", urlSessionId, urlPlayerId);
-            setSessionId(urlSessionId);
-            setPlayerId(urlPlayerId);
-            socket.emit('join-session', { sessionId: urlSessionId, playerId: parseInt(urlPlayerId) });
-        } else {
-            console.log("ControllerView: No URL params for session, waiting for code-verified");
-        }
-    };
 
-    if (socket.connected) {
-        joinSession();
-    } else {
-        socket.on('connect', joinSession);
-    }
-
-    socket.on('code-verified', (data) => {
+    const onCodeVerified = (data: { sessionId: string }) => {
         console.log("Code verified, session:", data.sessionId);
         setSessionId(data.sessionId);
-        // Do not force Player 1 or auto-join.
-    });
-    socket.on('code-error', (data) => {
+        setError(null);
+    };
+
+    const onCodeError = (data: { message: string }) => {
         console.log("Code error:", data.message);
-        setError(data.message);
+        setError(data.message || "Invalid code");
         setCode('');
-    });
-    socket.on('connect_error', (err) => {
+    };
+
+    const onConnectError = (err: any) => {
         console.error('Socket connection error:', err);
         setError(`Connection failed: ${err.message}`);
-    });
-    socket.on('connected', (data) => {
-        console.log("Connected to game session", data);
-        setIsConnected(true)
-    });
-    return () => { 
-        socket.off('connect', joinSession);
-        socket.off('code-verified');
-        socket.off('code-error');
-        socket.off('connected');
     };
-  }, [socket, urlSessionId, urlPlayerId]);
+
+    const onConnected = (data: any) => {
+        console.log("Connected to game session", data);
+        setIsConnected(true);
+    };
+
+    socket.on('code-verified', onCodeVerified);
+    socket.on('code-error', onCodeError);
+    socket.on('connect_error', onConnectError);
+    socket.on('connected', onConnected);
+
+    return () => { 
+        socket.off('code-verified', onCodeVerified);
+        socket.off('code-error', onCodeError);
+        socket.off('connect_error', onConnectError);
+        socket.off('connected', onConnected);
+    };
+  }, [socket]);
 
   useEffect(() => {
-      if (sessionId && playerId) {
+      if (sessionId && playerId && socket) {
         console.log("Attempting join-session", sessionId, playerId);
-        socket?.emit('join-session', { sessionId, playerId: parseInt(playerId || '1') });
+        socket.emit('join-session', { sessionId, playerId: parseInt(playerId || '1') });
       }
   }, [sessionId, playerId, socket]);
 
   const joinByCode = () => {
-      console.log("joinByCode called. Code:", code, "Socket exists:", !!socket, "Socket connected:", socket?.connected);
-      if (!socket || !socket.connected) {
-          console.error("Socket not connected");
-          setError("Connection error: Socket disconnected");
+      if (!socket) {
+          setError("Connecting to server... please wait");
           return;
       }
-      const pId = 1; // Default to P1
+      if (!socket.connected) {
+          setError("Socket disconnected, reconnecting...");
+          return;
+      }
+      if (code.length < 4) {
+          setError("Please enter the 4-digit code");
+          return;
+      }
+      const pId = parseInt(playerId || '1');
       console.log("Emitting join-by-code", { code, playerId: pId });
+      setError(null);
       socket.emit('join-by-code', { code, playerId: pId });
   };
 
   const handleKeypadPress = (key: string | number) => {
+      setError(null);
       if (key === 'Enter') {
           joinByCode();
       } else if (key === 'Clear') {
@@ -111,34 +106,37 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
   };
 
   if (!socket) {
-    return <div className="text-white">Connecting...</div>;
+    return <div className="text-white flex items-center justify-center h-screen bg-stone-900">Connecting to server...</div>;
   }
 
   if (!sessionId) {
       return (
           <div className="w-screen h-screen bg-stone-900 flex flex-col items-center justify-center p-4">
-              <h2 className="text-white mb-6 text-xl">Enter Connection Code</h2>
-              <div className="text-amber-500 text-3xl font-mono mb-8 tracking-widest h-10">{code.padEnd(4, '_')}</div>
+              <h2 className="text-white mb-2 text-xl font-bold">Controller P{playerId}</h2>
+              <p className="text-stone-400 mb-6 text-sm">Enter the 4-digit code from the TV</p>
+              <div className="text-amber-500 text-3xl font-mono mb-8 tracking-widest h-12 flex items-center justify-center bg-stone-800 px-6 py-2 rounded-lg border border-amber-600/40">
+                {code.padEnd(4, '_')}
+              </div>
               
-              <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-xs">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'Clear', 0, 'Enter'].map((key) => (
                       <button 
                           key={key} 
                           onClick={() => handleKeypadPress(key)}
-                          className="bg-stone-700 text-white p-4 rounded-lg text-xl hover:bg-stone-600 active:bg-amber-600"
+                          className="bg-stone-700 text-white p-4 rounded-lg text-xl font-semibold hover:bg-stone-600 active:bg-amber-600 transition"
                       >
                           {key}
                       </button>
                   ))}
               </div>
-              {error && <div className="text-red-500 mt-6">{error}</div>}
+              {error && <div className="text-red-400 mt-6 font-medium">{error}</div>}
           </div>
-      )
+      );
   }
 
   return (
     <div className="w-screen h-screen bg-stone-900 flex flex-col items-center justify-center">
-      <h2 className="text-white mb-4">Controller P1</h2>
+      <h2 className="text-white mb-4">Controller P{playerId}</h2>
       {isConnected && <div className="text-green-500 mb-2 font-bold">CONNECTED</div>}
       <ControllerOverlay 
         onButtonDown={(btn) => sendInput(btn, 'down')}
@@ -157,7 +155,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    window.open(`${window.location.origin}/controller/${sessionId}/${playerId}`, '_blank');
+    window.open(`${window.location.origin}/controller/${playerId}`, '_blank');
   };
 
   useEffect(() => {
@@ -194,11 +192,21 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
     socket.on('game-input', inputHandler);
     socket.on('game-exit', exitHandler);
-    console.log("Registering code:", connectionCode, "session:", sessionId);
-    socket.emit('register-code', { code: connectionCode, sessionId });
+    const registerCode = () => {
+        console.log("Registering code:", connectionCode, "session:", sessionId);
+        socket.emit('register-code', { code: connectionCode, sessionId });
+    };
+
+    if (socket.connected) {
+        registerCode();
+    }
+    socket.on('connect', registerCode);
+    registerCode();
+
     return () => { 
         socket.off('game-input', inputHandler); 
         socket.off('game-exit', exitHandler);
+        socket.off('connect', registerCode);
     };
   }, [socket, romData, connectionCode, sessionId]);
 
@@ -238,7 +246,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
         <div className="flex gap-2 sm:gap-4 justify-center w-full items-center">
             {/* P1 */}
             <div key={1} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/1`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/1`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -260,7 +268,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
             {/* P2 */}
             <div key={2} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/2`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/2`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -319,7 +327,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
+        <Route path="/controller/:playerId" element={<ControllerView socket={socket} />} />
         <Route path="/controller" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
           socket={socket} 
