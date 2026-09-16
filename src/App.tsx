@@ -214,11 +214,11 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
       {/* Emulator container */}
       <div 
-        className={`cursor-pointer transition-all duration-300 ${romData ? 'opacity-100' : 'opacity-0'} ${isFullScreen ? 'fixed inset-0 z-50 w-screen h-screen bg-black' : ''}`}
-        style={!isFullScreen ? { 
+        className={`cursor-pointer transition-opacity duration-300 ${romData ? 'opacity-100' : 'opacity-0'}`}
+        style={{ 
             width: '32vw',
             height: '35vh' 
-        } : {}}
+        }}
         onClick={triggerFullScreen}
       >
         <Emulator ref={emulatorRef} romData={romData} onStart={triggerFullScreen} />
@@ -226,7 +226,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
       {/* UI Overlay */}
       <div 
-        className={`bg-black/80 p-2 sm:p-4 rounded-xl border border-amber-600 backdrop-blur-md shadow-2xl flex flex-col items-center gap-2 sm:gap-3 ${isFullScreen ? 'hidden' : 'flex'}`}
+        className="bg-black/80 p-2 sm:p-4 rounded-xl border border-amber-600 backdrop-blur-md shadow-2xl flex flex-col items-center gap-2 sm:gap-3"
         style={{
             width: '340px',
         }}
