@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Maximize, Minimize } from 'lucide-react';
+import { Tv, Smartphone, Maximize, Minimize } from 'lucide-react';
 
 interface ControllerOverlayProps {
   onButtonDown: (button: number) => void;
@@ -33,20 +33,23 @@ export const ControllerOverlay: React.FC<ControllerOverlayProps> = ({ onButtonDo
     };
   }, []);
 
-  const toggleFullscreen = () => {
+  const togglePhoneFullscreen = () => {
     if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
       if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch((err) => console.log('Fullscreen error:', err));
+        document.documentElement.requestFullscreen().catch(() => {});
       } else if ((document.documentElement as any).webkitRequestFullscreen) {
         (document.documentElement as any).webkitRequestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen().catch((err) => console.log('Exit fullscreen error:', err));
+        document.exitFullscreen().catch(() => {});
       } else if ((document as any).webkitExitFullscreen) {
         (document as any).webkitExitFullscreen();
       }
     }
+  };
+
+  const toggleCanvasFullscreen = () => {
     onToggleFullscreen?.();
   };
 
@@ -67,12 +70,20 @@ export const ControllerOverlay: React.FC<ControllerOverlayProps> = ({ onButtonDo
       {/* Top Controls Bar */}
       <div className="absolute top-3 right-4 flex items-center gap-2 z-10">
         <button
-          onClick={toggleFullscreen}
-          className="bg-stone-700/90 hover:bg-stone-600 active:bg-amber-600 text-stone-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 backdrop-blur border border-stone-600 shadow transition select-none"
-          title="Toggle Fullscreen"
+          onClick={toggleCanvasFullscreen}
+          className="bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 backdrop-blur border border-amber-500 shadow transition select-none"
+          title="Toggle TV Canvas Fullscreen"
         >
-          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-          <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+          <Tv className="w-3.5 h-3.5" />
+          <span>TV Fullscreen</span>
+        </button>
+        <button
+          onClick={togglePhoneFullscreen}
+          className="bg-stone-700/80 hover:bg-stone-600 active:bg-stone-500 text-stone-200 px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 backdrop-blur border border-stone-600 shadow transition select-none"
+          title="Toggle Phone Fullscreen"
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{isFullscreen ? 'Exit Phone' : 'Phone'}</span>
         </button>
       </div>
 
@@ -95,9 +106,9 @@ export const ControllerOverlay: React.FC<ControllerOverlayProps> = ({ onButtonDo
             </div>
             <div className="flex gap-2">
                 <button 
-                    className="w-16 sm:w-20 h-7 bg-stone-600 hover:bg-stone-500 active:bg-amber-600 text-stone-200 font-bold rounded text-[9px] sm:text-[10px] tracking-wider transition select-none flex items-center justify-center shadow"
-                    onClick={toggleFullscreen}
-                    title="Fullscreen"
+                    className="w-16 sm:w-20 h-7 bg-amber-700 hover:bg-amber-600 active:bg-amber-800 text-white font-bold rounded text-[9px] sm:text-[10px] tracking-wider transition select-none flex items-center justify-center shadow"
+                    onClick={toggleCanvasFullscreen}
+                    title="Toggle TV Canvas Fullscreen"
                 >
                     FULLSCREEN
                 </button>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useState } from 're
 import { NES } from 'jsnes';
 import { Volume2, VolumeX } from 'lucide-react';
 
-export const Emulator = forwardRef(({ romData, onStart }: { romData: Uint8Array | null, onStart?: () => void }, ref) => {
+export const Emulator = forwardRef(({ romData, onStart, isFullScreen }: { romData: Uint8Array | null, onStart?: () => void, isFullScreen?: boolean }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nesRef = useRef<NES | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -119,11 +119,30 @@ export const Emulator = forwardRef(({ romData, onStart }: { romData: Uint8Array 
   }, [onStart]);
 
   return (
-    <div className="relative">
-        <canvas ref={canvasRef} width="256" height="240" className="bg-black border-4 border-white/10" style={{ width: '623px', height: '409px' }} />
+    <div className={`relative ${isFullScreen ? 'w-full h-full flex items-center justify-center bg-black' : ''}`}>
+        <canvas 
+          ref={canvasRef} 
+          width="256" 
+          height="240" 
+          className="bg-black border-4 border-white/10" 
+          style={isFullScreen ? { 
+            width: 'auto', 
+            height: '96vh', 
+            maxWidth: '96vw', 
+            maxHeight: '96vh',
+            aspectRatio: '256/240', 
+            imageRendering: 'pixelated',
+            objectFit: 'contain'
+          } : { 
+            width: '623px', 
+            height: '409px',
+            maxWidth: '100%',
+            maxHeight: '100%'
+          }} 
+        />
         <button 
             onClick={() => setIsMuted(!isMuted)}
-            className="absolute top-2 left-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+            className="absolute top-2 left-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 z-10"
         >
             {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>

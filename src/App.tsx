@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
-import { Gamepad2, Maximize } from 'lucide-react';
+import { Gamepad2, Maximize, Minimize } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { io, Socket } from 'socket.io-client';
 import { DriveGameSelector } from './components/DriveGameSelector';
@@ -13,12 +13,21 @@ import { Emulator } from './components/Emulator';
 import { ControllerOverlay } from './components/ControllerOverlay';
 
 const ControllerView = ({ socket }: { socket: Socket | null }) => {
-  const { playerId: urlPlayerId } = useParams();
+  const { sessionId: urlSessionId, playerId: urlPlayerId } = useParams();
   const [code, setCode] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [playerId] = useState<string>(urlPlayerId || '1');
+  const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null);
+  const [playerId, setPlayerId] = useState<string>(urlPlayerId || '1');
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (urlSessionId) {
+      setSessionId(urlSessionId);
+    }
+    if (urlPlayerId) {
+      setPlayerId(urlPlayerId);
+    }
+  }, [urlSessionId, urlPlayerId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -60,8 +69,17 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
 
   useEffect(() => {
       if (sessionId && playerId && socket) {
-        console.log("Attempting join-session", sessionId, playerId);
-        socket.emit('join-session', { sessionId, playerId: parseInt(playerId || '1') });
+        const doJoin = () => {
+          console.log("Attempting join-session", sessionId, playerId);
+          socket.emit('join-session', { sessionId, playerId: parseInt(playerId || '1') });
+        };
+        if (socket.connected) {
+          doJoin();
+        }
+        socket.on('connect', doJoin);
+        return () => {
+          socket.off('connect', doJoin);
+        };
       }
   }, [sessionId, playerId, socket]);
 
@@ -222,14 +240,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
     };
 
     const fullscreenHandler = () => {
-        const canvas = emulatorRef.current?.getCanvas();
-        if (canvas) {
-            if (!document.fullscreenElement) {
-                canvas.requestFullscreen?.().catch(() => {});
-            } else {
-                document.exitFullscreen?.().catch(() => {});
-            }
-        }
+        setIsFullScreen(prev => !prev);
     };
 
     socket.on('game-input', inputHandler);
@@ -255,11 +266,24 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   }, [socket, romData, connectionCode, sessionId]);
 
   const triggerFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
+    setIsFullScreen(prev => !prev);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullScreen]);
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col items-center justify-start pt-10 sm:pt-32 gap-6 sm:gap-20" style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}>
+    <div 
+      className="relative w-screen h-screen overflow-hidden flex flex-col items-center justify-start pt-10 sm:pt-32 gap-6 sm:gap-20" 
+      style={isFullScreen ? undefined : { transform: `scale(${scale})`, transformOrigin: 'top center' }}
+    >
       <img 
         src="/assets/background.png" 
         alt="Room background" 
@@ -268,14 +292,39 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
       {/* Emulator container */}
       <div 
-        className={`cursor-pointer transition-opacity duration-300 ${romData ? 'opacity-100' : 'opacity-0'}`}
-        style={{ 
+        className={`transition-all duration-300 ${romData ? 'opacity-100' : 'opacity-0'} ${
+          isFullScreen 
+            ? '!fixed !inset-0 !z-50 !w-screen !h-screen !bg-black flex items-center justify-center p-0 m-0 cursor-default' 
+            : 'cursor-pointer'
+        }`}
+        style={isFullScreen ? { 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 50,
+            backgroundColor: '#000000'
+        } : { 
             width: '32vw',
             height: '35vh' 
         }}
-        onClick={triggerFullScreen}
+        onClick={isFullScreen ? undefined : triggerFullScreen}
       >
-        <Emulator ref={emulatorRef} romData={romData} onStart={triggerFullScreen} />
+        <Emulator ref={emulatorRef} romData={romData} onStart={triggerFullScreen} isFullScreen={isFullScreen} />
+        {isFullScreen && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullScreen(false);
+            }}
+            className="absolute top-4 right-4 bg-stone-900/80 hover:bg-stone-800 text-white text-xs px-3 py-1.5 rounded-lg border border-stone-600 shadow z-50 flex items-center gap-1.5 backdrop-blur transition"
+            title="Exit Fullscreen"
+          >
+            <Minimize className="w-3.5 h-3.5" />
+            <span>Exit Fullscreen</span>
+          </button>
+        )}
       </div>
 
       {/* UI Overlay */}
@@ -290,7 +339,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
         <div className="flex gap-2 sm:gap-4 justify-center w-full items-center">
             {/* P1 */}
             <div key={1} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/1`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/1`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -308,11 +357,30 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
             <div className="flex flex-col items-center text-[9px] text-white text-center whitespace-nowrap px-1">
                 <div>Connect with:</div>
                 <div className="font-bold text-sm text-amber-500">{connectionCode}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <button 
+                      onClick={() => window.open(`${window.location.origin}/controller`, '_blank')}
+                      className="text-[8px] text-amber-300/80 hover:text-amber-200 underline"
+                      title="Open keypad to enter PIN"
+                  >
+                      Enter PIN
+                  </button>
+                  {romData && (
+                    <button
+                      onClick={triggerFullScreen}
+                      className="text-[8px] text-stone-300 hover:text-white flex items-center gap-0.5 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700"
+                      title="Toggle Canvas Fullscreen"
+                    >
+                      <Maximize className="w-2.5 h-2.5" />
+                      <span>Fullscreen</span>
+                    </button>
+                  )}
+                </div>
             </div>
 
             {/* P2 */}
             <div key={2} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/2`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/2`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -371,6 +439,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
         <Route path="/controller/:playerId" element={<ControllerView socket={socket} />} />
         <Route path="/controller" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
