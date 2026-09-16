@@ -15,8 +15,10 @@ import { ControllerOverlay } from './components/ControllerOverlay';
 const ControllerView = ({ socket }: { socket: Socket | null }) => {
   console.log("ControllerView rendering. Socket:", !!socket);
   const { sessionId: urlSessionId, playerId: urlPlayerId } = useParams();
+  console.log("ControllerView params:", { urlSessionId, urlPlayerId });
   const [code, setCode] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null);
+  console.log("ControllerView initial sessionId:", sessionId);
   const [playerId, setPlayerId] = useState<string | null>(urlPlayerId || null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +59,8 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
         console.error('Socket connection error:', err);
         setError(`Connection failed: ${err.message}`);
     });
-    socket.on('connected', () => {
-        console.log("Connected to game session");
+    socket.on('connected', (data) => {
+        console.log("Connected to game session", data);
         setIsConnected(true)
     });
     return () => { 
@@ -318,6 +320,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
+        <Route path="/controller" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
           socket={socket} 
           sessionId={sessionId}
