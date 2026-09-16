@@ -155,7 +155,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    window.open(`${window.location.origin}/controller/${playerId}`, '_blank');
+    window.open(`${window.location.origin}/controller/${sessionId}/${playerId}`, '_blank');
   };
 
   useEffect(() => {
@@ -223,12 +223,12 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
       <img 
         src="/assets/background.png" 
         alt="Room background" 
-        className="absolute inset-0 w-[1027px] h-[1007px] object-cover -z-10" 
+        className="absolute inset-0 w-full h-full object-cover -z-10" 
       />
 
       {/* Emulator container */}
       <div 
-        className="cursor-pointer"
+        className={`cursor-pointer transition-opacity duration-300 ${romData ? 'opacity-100' : 'opacity-0'}`}
         style={{ 
             width: '32vw',
             height: '35vh' 
@@ -250,7 +250,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
         <div className="flex gap-2 sm:gap-4 justify-center w-full items-center">
             {/* P1 */}
             <div key={1} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/1`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/1`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -272,7 +272,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
             {/* P2 */}
             <div key={2} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/2`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/2`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -331,7 +331,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/controller/:playerId" element={<ControllerView socket={socket} />} />
+        <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
           socket={socket} 
           sessionId={sessionId}
