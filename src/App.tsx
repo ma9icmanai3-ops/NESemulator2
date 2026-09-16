@@ -14,9 +14,9 @@ import { ControllerOverlay } from './components/ControllerOverlay';
 
 const ControllerView = ({ socket }: { socket: Socket | null }) => {
   console.log("ControllerView rendering. Socket:", !!socket);
-  const { sessionId: urlSessionId, playerId: urlPlayerId } = useParams();
+  const { playerId: urlPlayerId } = useParams();
   const [code, setCode] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(urlPlayerId || null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,9 +78,9 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
           setError("Connection error: Socket disconnected");
           return;
       }
-      setPlayerId('1'); // Default to P1
-      console.log("Emitting join-by-code", { code, playerId: 1 });
-      socket.emit('join-by-code', { code, playerId: 1 });
+      const pId = parseInt(playerId || '1');
+      console.log("Emitting join-by-code", { code, playerId: pId });
+      socket.emit('join-by-code', { code, playerId: pId });
   };
 
   const handleKeypadPress = (key: string | number) => {
@@ -150,7 +150,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    window.open(`${window.location.origin}/controller`, '_blank');
+    window.open(`${window.location.origin}/controller/${playerId}`, '_blank');
   };
 
   useEffect(() => {
@@ -323,7 +323,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
+        <Route path="/controller/:playerId" element={<ControllerView socket={socket} />} />
         <Route path="/controller" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
           socket={socket} 
