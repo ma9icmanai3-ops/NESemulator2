@@ -46,9 +46,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
     socket.on('code-verified', (data) => {
         console.log("Code verified, session:", data.sessionId);
         setSessionId(data.sessionId);
-        setPlayerId('1');
-        // Explicitly trigger join here to ensure connection
-        socket.emit('join-session', { sessionId: data.sessionId, playerId: 1 });
+        // Do not force Player 1 or auto-join.
     });
     socket.on('code-error', (data) => {
         console.log("Code error:", data.message);
@@ -157,7 +155,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    window.open(`${window.location.origin}/controller/${sessionId}/${playerId}`, '_blank');
+    window.open(`${window.location.origin}/controller/${playerId}`, '_blank');
   };
 
   useEffect(() => {
@@ -252,7 +250,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
         <div className="flex gap-2 sm:gap-4 justify-center w-full items-center">
             {/* P1 */}
             <div key={1} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/1`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/1`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -274,7 +272,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
 
             {/* P2 */}
             <div key={2} className="flex flex-col items-center gap-1 sm:gap-2 w-full">
-                <QRCodeSVG value={`${window.location.origin}/controller/${sessionId}/2`} size={50} />
+                <QRCodeSVG value={`${window.location.origin}/controller/2`} size={50} />
                 <div className="flex flex-col gap-0.5 sm:gap-1 w-full">
                     <button 
                         className="bg-amber-600 text-white text-[9px] py-1 rounded w-full hover:bg-amber-700 transition"
@@ -303,8 +301,11 @@ export default function App() {
   useEffect(() => {
     console.log("Initializing socket client for:", window.location.origin);
     const s = io(window.location.origin, { 
-        transports: ['websocket', 'polling'], // Allow fallback
-        reconnectionAttempts: 5 
+        path: '/socket.io',
+        transports: ['websocket'], // Use only websocket initially
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000
     });
     
     s.on('connect', () => {
@@ -330,7 +331,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
+        <Route path="/controller/:playerId" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
           socket={socket} 
           sessionId={sessionId}
