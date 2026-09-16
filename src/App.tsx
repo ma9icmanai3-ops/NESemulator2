@@ -53,6 +53,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
     socket.on('code-error', (data) => {
         console.log("Code error:", data.message);
         setError(data.message);
+        setCode('');
     });
     socket.on('connected', () => {
         console.log("Connected to game session");
@@ -85,6 +86,16 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
       socket.emit('join-by-code', { code, playerId: 1 });
   };
 
+  const handleKeypadPress = (key: string | number) => {
+      if (key === 'Enter') {
+          joinByCode();
+      } else if (key === 'Clear') {
+          setCode('');
+      } else {
+          if (code.length < 4) setCode(prev => prev + key);
+      }
+  };
+
   const sendInput = (button: number, type: 'down' | 'up') => {
     if (!sessionId) return;
     socket?.emit('controller-input', { sessionId, playerId: parseInt(playerId || '1'), button, type });
@@ -102,18 +113,21 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
   if (!sessionId) {
       return (
           <div className="w-screen h-screen bg-stone-900 flex flex-col items-center justify-center p-4">
-              <h2 className="text-white mb-4">Enter Connection Code</h2>
-              <input 
-                  type="text" 
-                  value={code} 
-                  onChange={(e) => setCode(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(); }}
-                  className="p-2 rounded mb-4 w-48 text-center text-black"
-                  placeholder="0000"
-              />
-              <button onClick={joinByCode} className="bg-amber-600 text-white p-2 rounded">Connect</button>
-              {error && <div className="text-red-500 mt-2">{error}</div>}
-              <div className="mt-4 text-white">Or scan QR on TV</div>
+              <h2 className="text-white mb-6 text-xl">Enter Connection Code</h2>
+              <div className="text-amber-500 text-3xl font-mono mb-8 tracking-widest h-10">{code.padEnd(4, '_')}</div>
+              
+              <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'Clear', 0, 'Enter'].map((key) => (
+                      <button 
+                          key={key} 
+                          onClick={() => handleKeypadPress(key)}
+                          className="bg-stone-700 text-white p-4 rounded-lg text-xl hover:bg-stone-600 active:bg-amber-600"
+                      >
+                          {key}
+                      </button>
+                  ))}
+              </div>
+              {error && <div className="text-red-500 mt-6">{error}</div>}
           </div>
       )
   }
