@@ -73,9 +73,10 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
   }, [sessionId, playerId, socket]);
 
   const joinByCode = () => {
-      console.log("joinByCode clicked. Code:", code, "Socket:", !!socket, "Connected:", socket?.connected);
-      if (!socket) {
+      console.log("joinByCode called. Code:", code, "Socket exists:", !!socket, "Socket connected:", socket?.connected);
+      if (!socket || !socket.connected) {
           console.error("Socket not connected");
+          setError("Connection error: Socket disconnected");
           return;
       }
       setPlayerId('1'); // Default to P1
@@ -105,6 +106,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
                   type="text" 
                   value={code} 
                   onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(); }}
                   className="p-2 rounded mb-4 w-48 text-center text-black"
                   placeholder="0000"
               />
