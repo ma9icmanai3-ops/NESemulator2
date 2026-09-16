@@ -55,6 +55,10 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
         setError(data.message);
         setCode('');
     });
+    socket.on('connect_error', (err) => {
+        console.error('Socket connection error:', err);
+        setError(`Connection failed: ${err.message}`);
+    });
     socket.on('connected', () => {
         console.log("Connected to game session");
         setIsConnected(true)
