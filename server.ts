@@ -70,14 +70,16 @@ async function startServer() {
         // data: { code, sessionId }
         codeToSessionId.set(data.code, data.sessionId);
         console.log(`Registered code: ${data.code} -> ${data.sessionId}`);
+        console.log("Current codes after registration:", Array.from(codeToSessionId.entries()));
     });
 
     socket.on("join-by-code", (data) => {
         // data: { code, playerId }
-        console.log("Join by code attempt:", data.code, data.playerId);
+        console.log("Join by code attempt received:", data);
+        console.log("Current codes:", Array.from(codeToSessionId.entries()));
         const sessionId = codeToSessionId.get(data.code);
         if (sessionId) {
-            console.log("Session found:", sessionId);
+            console.log("Session found for code:", data.code, "is:", sessionId);
             socket.emit("code-verified", { sessionId });
         } else {
             console.log("Session not found for code:", data.code);
