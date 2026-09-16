@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Maximize } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { io, Socket } from 'socket.io-client';
 import { DriveGameSelector } from './components/DriveGameSelector';
@@ -105,13 +105,43 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
     socket?.emit('controller-exit', { sessionId, playerId: parseInt(playerId || '1') });
   };
 
+  const sendFullscreen = () => {
+    if (!sessionId) return;
+    socket?.emit('controller-fullscreen', { sessionId, playerId: parseInt(playerId || '1') });
+  };
+
   if (!socket) {
     return <div className="text-white flex items-center justify-center h-screen bg-stone-900">Connecting to server...</div>;
   }
 
   if (!sessionId) {
       return (
-          <div className="w-screen h-screen bg-stone-900 flex flex-col items-center justify-center p-4">
+          <div className="relative w-screen h-screen bg-stone-900 flex flex-col items-center justify-center p-4">
+              <div className="absolute top-3 right-4">
+                <button
+                  onClick={() => {
+                    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+                      if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen().catch(() => {});
+                      } else if ((document.documentElement as any).webkitRequestFullscreen) {
+                        (document.documentElement as any).webkitRequestFullscreen();
+                      }
+                    } else {
+                      if (document.exitFullscreen) {
+                        document.exitFullscreen().catch(() => {});
+                      } else if ((document as any).webkitExitFullscreen) {
+                        (document as any).webkitExitFullscreen();
+                      }
+                    }
+                  }}
+                  className="bg-stone-800/90 hover:bg-stone-700 active:bg-amber-600 text-stone-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-stone-700 shadow select-none"
+                  title="Toggle Fullscreen"
+                >
+                  <Maximize className="w-3.5 h-3.5" />
+                  <span>Fullscreen</span>
+                </button>
+              </div>
+
               <h2 className="text-white mb-2 text-xl font-bold">Controller P{playerId}</h2>
               <p className="text-stone-400 mb-6 text-sm">Enter the 4-digit code from the TV</p>
               <div className="text-amber-500 text-3xl font-mono mb-8 tracking-widest h-12 flex items-center justify-center bg-stone-800 px-6 py-2 rounded-lg border border-amber-600/40">
@@ -142,6 +172,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
         onButtonDown={(btn) => sendInput(btn, 'down')}
         onButtonUp={(btn) => sendInput(btn, 'up')}
         onExit={sendExit}
+        onToggleFullscreen={sendFullscreen}
       />
     </div>
   );
@@ -190,8 +221,20 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
         setIsFullScreen(false);
     };
 
+    const fullscreenHandler = () => {
+        const canvas = emulatorRef.current?.getCanvas();
+        if (canvas) {
+            if (!document.fullscreenElement) {
+                canvas.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.().catch(() => {});
+            }
+        }
+    };
+
     socket.on('game-input', inputHandler);
     socket.on('game-exit', exitHandler);
+    socket.on('game-fullscreen', fullscreenHandler);
     const registerCode = () => {
         console.log("Registering code:", connectionCode, "session:", sessionId);
         socket.emit('register-code', { code: connectionCode, sessionId });
@@ -206,6 +249,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
     return () => { 
         socket.off('game-input', inputHandler); 
         socket.off('game-exit', exitHandler);
+        socket.off('game-fullscreen', fullscreenHandler);
         socket.off('connect', registerCode);
     };
   }, [socket, romData, connectionCode, sessionId]);

@@ -106,6 +106,12 @@ async function startServer() {
       console.log("Controller exit:", data);
       io.to(data.sessionId).emit("game-exit", data);
     });
+
+    socket.on("controller-fullscreen", (data) => {
+      // data: { sessionId, playerId }
+      console.log("Controller fullscreen toggle:", data);
+      io.to(data.sessionId).emit("game-fullscreen", data);
+    });
   });
 
   // Vite middleware for development
