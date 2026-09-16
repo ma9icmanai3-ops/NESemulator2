@@ -300,17 +300,30 @@ export default function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const s = io(window.location.origin, { transports: ['websocket'] });
+    console.log("Initializing socket client for:", window.location.origin);
+    const s = io(window.location.origin, { 
+        transports: ['websocket', 'polling'], // Allow fallback
+        reconnectionAttempts: 5 
+    });
+    
     s.on('connect', () => {
-      console.log('Socket connected');
+      console.log('Socket connected successfully:', s.id);
       s.emit('join-session', { sessionId, playerId: 0 }); // Join as viewer initially
     });
+    
+    s.on('connect_error', (err) => {
+        console.error('Socket connection error:', err);
+    });
+
     s.on('player-connected', (playerId) => {
         if (playerId === 1) setPlayer1Connected(true);
         if (playerId === 2) setPlayer2Connected(true);
     });
     setSocket(s);
-    return () => { s.disconnect(); };
+    return () => { 
+        console.log("Disconnecting socket");
+        s.disconnect(); 
+    };
   }, [sessionId]);
 
   return (
