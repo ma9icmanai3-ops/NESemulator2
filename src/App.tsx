@@ -22,6 +22,15 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
 
   useEffect(() => {
     if (!socket) return;
+    
+    // If we have a sessionId from the URL, try to join immediately
+    if (urlSessionId && urlPlayerId) {
+        console.log("ControllerView: Joining from URL params", urlSessionId, urlPlayerId);
+        setSessionId(urlSessionId);
+        setPlayerId(urlPlayerId);
+        socket.emit('join-session', { sessionId: urlSessionId, playerId: parseInt(urlPlayerId) });
+    }
+
     socket.on('code-verified', (data) => {
         console.log("Code verified, session:", data.sessionId);
         setSessionId(data.sessionId);
@@ -42,7 +51,7 @@ const ControllerView = ({ socket }: { socket: Socket | null }) => {
         socket.off('code-error');
         socket.off('connected');
     };
-  }, [socket]);
+  }, [socket, urlSessionId, urlPlayerId]);
 
   useEffect(() => {
       if (sessionId && playerId) {
