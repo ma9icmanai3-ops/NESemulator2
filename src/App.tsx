@@ -150,7 +150,7 @@ const EmulatorView = ({ socket, sessionId, player1Connected, player2Connected, r
   const [scale, setScale] = useState(1);
 
   const handleConnect = (playerId: number) => {
-    window.open(`${window.location.origin}/controller/${sessionId}/${playerId}`, '_blank');
+    window.open(`${window.location.origin}/controller`, '_blank');
   };
 
   useEffect(() => {
@@ -324,6 +324,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/controller/:sessionId/:playerId" element={<ControllerView socket={socket} />} />
+        <Route path="/controller" element={<ControllerView socket={socket} />} />
         <Route path="/" element={<EmulatorView 
           socket={socket} 
           sessionId={sessionId}
